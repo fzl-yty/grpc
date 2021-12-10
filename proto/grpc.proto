@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package="./;proto";
+
+package proto;
+
+message Keys {
+    repeated string keys = 1;
+}
+
+// worker发起主任务启动请求
+message JobKeyReq {
+    google.protobuf.Timestamp WorkerTriggerTime = 1;
+    google.protobuf.Timestamp LeaderTriggerTime = 2;
+    google.protobuf.Timestamp UpdateTime = 3;
+    string Name = 4;    // 主任务名
+    string mode = 5;   // 指定广播模式或者hash模式
+    repeated string Keys = 6; // 待分发的keys
+    string JobNode = 7;
+
+    map<string, Keys> PreDistributeJobs = 8; // 预分配任务
+    map<string, Keys> DistributedKeys = 9;   // 已经分配的keys
+    map<string, Keys> DistributedFailedKeys = 10; // 分配失败的节点和keys
+
+    //BroadcastIPs map[string]struct{}
+    map<string, bool> BroadcastIPs = 11;// 已经分配的节点
+    bool AllocationResult = 13;  // 任务分配结果
+}
+// leader响应主任务启动请求
+message JobKeyResp {
+    string data = 1;
+    string errno = 2;
+    string errMessage = 3;
+}
+
+// leader分配子任务
+message ChildJobReq {
+    string mode = 1;      // 任务模式
+    string JobName = 2;    // 主任务名
+    repeated string JobKeys = 3; // 待分发的keys
+}
+
+// worker响应子任务请求
+message ChildJobResp {
+    string data = 1;
+    string errno = 2;
+    string errMessage = 3;
+}
+
+// 定义Greeter服务
+service JobService {
+    // TaskStart方法,leader接受worker消息, 启动主任务
+    rpc TaskStart (JobKeyReq) returns (JobKeyResp) {}
+    // SubTaskStart,leader分发子任务到worker, 启动子任务
+    rpc SubTaskStart (ChildJobReq) returns (ChildJobResp) {}
+}
