@@ -1,4 +1,4 @@
-package coordinator
+package regulator
 
 import (
 	"context"
